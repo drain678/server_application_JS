@@ -1,10 +1,11 @@
 import { Router } from "express";
 import pool from "../db.js";
+import auth from "../middleware/auth.js";
 
 const router = Router();
 
 
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req, res) => {
     const { order_id, product_name, quantity, price } = req.body;
     try {
         const result = await pool.query(

@@ -12,6 +12,7 @@ def upgrade():
         'users',
         sa.Column('id', sa.Integer, primary_key=True),
         sa.Column('name', sa.String(100), nullable=False),
+        sa.Column('password', sa.String(100), nullable=False),
         sa.Column('email', sa.String(100), nullable=False, unique=True),
         sa.Column('phone', sa.String(20)),
         sa.Column('created_at', sa.TIMESTAMP, server_default=sa.func.now())

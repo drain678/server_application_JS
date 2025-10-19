@@ -1,10 +1,10 @@
 import { Router } from "express";
 import pool from "../db.js";
-
+import auth from "../middleware/auth.js";
 const router = Router();
 
 
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req, res) => {
     const { user_id, status, total_amount } = req.body;
     try {
         const result = await pool.query(
@@ -19,7 +19,7 @@ router.post("/", async (req, res) => {
 });
 
 
-router.get("/", async (req, res) => {
+router.get("/", auth, async (req, res) => {
     const { user_id } = req.query;
     try {
         let result;
@@ -54,7 +54,7 @@ router.get("/:id", async (req, res) => {
 });
 
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", auth, async (req, res) => {
     const { id } = req.params;
     try {
         const result = await pool.query("DELETE FROM orders WHERE id = $1 RETURNING *", [id]);
