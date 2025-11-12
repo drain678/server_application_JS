@@ -5,14 +5,52 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 dotenv.config();
-
 const router = Router();
-
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
+/**
+ * @openapi
+ * tags:
+ *   name: Auth
+ *   description: Регистрация, вход и профиль пользователя
+ */
+
+/**
+ * @openapi
+ * /auth/register:
+ *   post:
+ *     summary: Регистрация нового пользователя
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, email, password]
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Анна Петрова
+ *               email:
+ *                 type: string
+ *                 example: anna@example.com
+ *               password:
+ *                 type: string
+ *                 example: myStrongPassword123
+ *               phone:
+ *                 type: string
+ *                 example: "+79995554433"
+ *     responses:
+ *       201:
+ *         description: Пользователь успешно зарегистрирован
+ *       400:
+ *         description: Некорректные данные или email уже используется
+ *       500:
+ *         description: Ошибка сервера при регистрации
+ */
 router.post("/register", async (req, res) => {
     const { name, email, password, phone } = req.body;
-
     if (!email || !password || !name) {
         return res.status(400).json({ error: "Имя, email и пароль обязательны" });
     }
@@ -24,7 +62,6 @@ router.post("/register", async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-
         const result = await pool.query(
             `INSERT INTO users (name, email, password, phone)
        VALUES ($1, $2, $3, $4)
@@ -40,9 +77,36 @@ router.post("/register", async (req, res) => {
     }
 });
 
+/**
+ * @openapi
+ * /auth/login:
+ *   post:
+ *     summary: Авторизация пользователя
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: anna@example.com
+ *               password:
+ *                 type: string
+ *                 example: myStrongPassword123
+ *     responses:
+ *       200:
+ *         description: Успешный вход, возвращается JWT
+ *       401:
+ *         description: Неверный email или пароль
+ *       500:
+ *         description: Ошибка сервера при входе
+ */
 router.post("/login", async (req, res) => {
     const { email, password } = req.body;
-
     if (!email || !password) {
         return res.status(400).json({ error: "Email и пароль обязательны" });
     }
@@ -73,15 +137,27 @@ router.post("/login", async (req, res) => {
     }
 });
 
+/**
+ * @openapi
+ * /auth/profile:
+ *   get:
+ *     summary: Получить профиль текущего пользователя
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Данные профиля
+ *       401:
+ *         description: Нет или неверный токен
+ *       404:
+ *         description: Пользователь не найден
+ */
 router.get("/profile", async (req, res) => {
     const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-        return res.status(401).json({ error: "Нет токена" });
-    }
+    if (!authHeader) return res.status(401).json({ error: "Нет токена" });
 
     const token = authHeader.split(" ")[1];
-
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         const result = await pool.query(
@@ -89,10 +165,7 @@ router.get("/profile", async (req, res) => {
             [decoded.id]
         );
         const user = result.rows[0];
-        if (!user) {
-            return res.status(404).json({ error: "Пользователь не найден" });
-        }
-
+        if (!user) return res.status(404).json({ error: "Пользователь не найден" });
         res.json(user);
     } catch (err) {
         console.error("Ошибка валидации токена:", err);
